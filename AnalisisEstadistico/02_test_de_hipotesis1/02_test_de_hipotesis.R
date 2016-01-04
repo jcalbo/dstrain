@@ -24,3 +24,4 @@ wilcox.test(extra ~ group, data =sleep)
 # W = 25.5, p-value = 0.06933
 # alternative hypothesis: true location shift is not equal to 0
 
+
