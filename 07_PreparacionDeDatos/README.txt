@@ -1,1 +1,1 @@
-Carpeta con ejercicio y pruebas del capitulo 07 - Preparacion de Datos
+Carpeta con ejercicios y pruebas del capitulo 07 - Preparacion de Datos (en R)
