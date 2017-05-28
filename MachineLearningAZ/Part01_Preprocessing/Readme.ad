@@ -1,0 +1,11 @@
+# Data Preprocessing
+
+Utilizamos librerias tipicas para tratar los datos.
+
+Tareas habituales son:
+
+- Imputación
+- Codificación de valores categoricos
+- Desbalance de clases
+- Separación del dataset en training y test
+- Escalado de variables
