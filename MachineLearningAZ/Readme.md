@@ -11,3 +11,12 @@
 - Part 8 - Deep Learning
 - Part 9 - Dimensionality Reduction
 - Part 10 - Model Selection
+
+* Based in Kirill Eremenko and Hadelin de Ponteves's course.
+
+### My tasks list:
+- [x] Template for Data Preprocessing
+- [x] Regression
+- [x] Binomial Classification
+- [x] Multinomial Classification
+- [ ] Clustering
