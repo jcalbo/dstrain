@@ -1,0 +1,258 @@
+# Practica de Preparación de Datos
+## Curso Data Science
+#### Jorge Calbó
+
+
+### Ej 4. plyr, dplyr, data.table, reshape2
+
+Descarga los microdatos del censo del 2011 de http://goo.gl/guhG1M. Puedes bajar el nacional o, si tienes problemas de memoria, alguno de los regionalizados. En esa p?gina hay tambi?n informaci?n sobre las variables contenidas en el fichero y su formato. Puedes leerlo en R usando el paquete MicroDatosEs. Consulta la ayuda de la funcion censo2010.
+
+El ejercicio consiste en identificar algunas variables de tu inter?s y construir tablas por los indicadores que creas conveniente. Por ejemplo, poblacion por sexo y grupo de edad en cada provincia. O proporcion de viudos y viudas por tramo de edad y provincia. O. . .
+
+Eso si: hazlo usando los paquetes:dplyr, data.table, reshape2 y plyr. 
+
+Añade un comentario sobre la velocidad relativa de los distintos paquetes para procesar los datos.
+Cual es tu favorito?
+-----
+
+Instalo y cargo los paquetes necesarios
+
+```{r eval=TRUE, warning=FALSE, message=FALSE} 
+#install.packages("MicroDatosEs", repos="http://R-Forge.R-project.org")
+#install.packages("data.table")
+#install.packages("dplyr")
+#install.packages("pander")
+
+library("MicroDatosEs")
+library("data.table")
+library("dplyr")
+library("pander")
+```
+
+Establezco el directorio de trabajo
+```{r eval=TRUE} 
+(midir <- getwd())
+if (!is.null(midir)) setwd(midir)
+```
+
+Cargo el censo del INE (solo zona 4 por la memoria) usando el paquete MicroDatosEs:
+
+```{r eval=TRUE} 
+censo <- censo2010("../dat/MicrodatosCP_NV_per_BLOQUE1_CSE.txt",summary=FALSE)
+
+#censo <- read.csv("dat/madrid.csv", sep= "," )
+
+dim(censo)
+names(censo)
+head(censo)
+```
+
+
+Me quedo con las variables que me interesan:
+ * edad = edad de la persona
+ * cpro = nombre de provincia
+ * rela = situacion laboral
+ * sexo = sexo
+ * ecivil = estado civil
+ * esreal = estudios reale
+
+
+```{r eval=TRUE} 
+features <- c("edad", "cpro", "rela", "sexo","ecivil","esreal")
+censo <- as.data.frame(censo[,features])
+```
+
+
+###  Usando dplyr
+
+#### 1. Construir una tabla de doble entrada que muestre la poblacion en relacion al Nivel de Estudios de adultos > 16 y su Estado Civil.
+
+En este caso, si la variable Nivel de Estudios no tiene informacion, se le asignara el valor mas frecuente
+
+Que aspecto tienen los datos...?
+
+```{r eval=TRUE}
+df.aleat<- censo[sample(nrow(censo),20),]
+knitr::kable(head(df.aleat))
+```
+
+
+Veo que hay varios NA en la variable 'esreal'.
+
+Cuantos NA's?
+```{r eval=TRUE}
+length(which(is.na(censo$esreal)))
+```
+
+
+Voy a reemplazar los NA's por el valor mas frecuente de 'estudios reales'
+
+Para ello agrupo las personas segun el tipo de estudios para obtener el mas frecuente (usando dplyr).
+
+```{r eval=TRUE}
+dplyr.out <-  censo %>%                      # data frame de entrada
+  group_by(esreal) %>%                       # agrupo por la variable 'esreal'
+  summarise(contador = n()) %>%              # totalizo sobre la nueva variable 'contador'
+  arrange(desc(contador))                    # ordeno por la nueva variable
+
+knitr::kable(dplyr.out)
+```
+
+
+El valor mas frecuente para 'esreal' es 'Llegó al último curso de ESO...'
+
+Reemplazo este valor en los NA's de 'esreal'
+```{r eval=TRUE}
+censo$esreal[which(is.na(censo$esreal))] <- "Llegó al último curso de ESO, EGB o Bachiller Elemental o tiene el Certificado de Escolaridad o de Estudios Primarios"
+```
+
+
+Construyo una tabla que incluye solo a las personas mayores de 18 años y los agrupo por Estado Civil y Estudios Reales luego agrego la columna 'contador' con el acumulado por grupos.
+
+```{r eval=TRUE}
+inicio <- proc.time()
+dplyr.df.target <- censo %>%
+  #  select(ecivil,esreal,edad) %>%
+  filter(edad > 18 ) %>%
+  group_by(ecivil,esreal) %>%
+  summarise( contador = n() )
+tiempo_dplyr <- proc.time() - inicio
+tiempo_dplyr
+#dplyr.df.target
+```
+
+Este data frame nos queda en un formato 'largo'. Lo pasamos al formato 'ancho' con dcast del paquete reshape ademas agrego los totales por cada fila y columna
+```{r eval=TRUE}
+tabla<-dcast(dplyr.df.target, esreal ~ ecivil, value.var="contador", sum, margins= TRUE)
+names(tabla)
+setnames(tabla, "(all)", "Total")
+knitr::kable(tabla,split.table = Inf)
+```
+
+-------
+
+#### 2 - Construir una tabla que muestre la Situación Laboral de la poblacion por Sexo.
+
+En este caso se escluyen las observaciones que no tengan el dato de la Situacion Laboral (rela = NA) 
+
+Veo cuantos NA's tiene la variable Situacion Laboral (rela = NA) y los elimino.
+```{r eval=TRUE}
+length(which(is.na(censo$rela)))
+censo2 <- censo[!is.na(censo$rela),]
+
+```
+
+```{r eval=TRUE}
+inicio <- proc.time()
+dplyr.df.target2 <-  censo2 %>%
+  select(ecivil,esreal, edad, rela, sexo) %>%
+  group_by(sexo,rela) %>%
+  summarise(contador = n())
+tiempo_dplyr2 <- proc.time() - inicio
+tiempo_dplyr2
+
+knitr::kable(dplyr.df.target2)
+
+```
+
+Este data frame nos queda en un formato 'largo'. Lo pasamos al formato 'ancho' con dcast del paquete reshape
+
+```{r eval=TRUE}
+tabla2<-dcast(dplyr.df.target2, rela ~ sexo, value.var="contador", sum, margins = "sexo")
+setnames(tabla2, "(all)", "Total")
+knitr::kable(tabla2)
+
+```
+
+-----
+
+###  Usando data.tables
+
+#### 1. Construir una tabla de doble entrada que muestre la poblacion en relacion al Nivel de Estudios de adultos (mayores de 16) y su Estado Civil.
+
+```{r eval=TRUE}
+censo.dt<-as.data.table(censo)
+
+tables()
+
+#head(censo.dt)
+```
+
+
+Creo un nuevo data.table agrupando por Estado Civil y Estudios Reales
+
+```{r eval=TRUE}
+inicio <- proc.time()
+censo.dt.target<-censo.dt[edad>18,list(contador = .N), by=c("ecivil","esreal")]
+# .N es el numero de registros en cada grupo, con grupos definidos por las variables "ecivil" y "esreal".
+tiempo_dt <- proc.time() - inicio
+tiempo_dt
+```
+
+```{r eval=TRUE}
+
+#knitr::kable(censo.dt.target)
+str(censo.dt.target)
+```
+
+Nos queda en un formato 'largo'. Lo pasamos al formato 'ancho'.
+```{r eval=TRUE}
+tabla.dt <- dcast(censo.dt.target, esreal ~ ecivil, value.var ="contador", sum , margins = TRUE)
+
+knitr::kable(tabla.dt)
+```
+
+No funcionan los 'margins' con data.table. Lo paso a data.frame
+
+```{r eval=TRUE}
+censo.df.target<-as.data.frame(censo.dt.target)
+tabla.df<-dcast(censo.df.target, esreal ~ ecivil, value.var="contador", sum, margins = TRUE)
+setnames(tabla.df, "(all)", "Total")
+knitr::kable(tabla.df)
+```
+
+-------
+
+#### 2 - Construir una tabla que muestre la Situación Laboral de la poblacion por Sexo.
+
+```{r eval=TRUE}
+censo2.dt<-as.data.table(censo)
+```
+
+
+Veo que hay varios NA en la variable 'rela' y los quito
+
+```{r eval=TRUE}
+length(which(is.na(censo.dt[,rela])))
+censo2.dt <- censo.dt[!is.na(censo$rela),]
+```
+
+
+Creo un nuevo data.table agrupando por Sexo y Situación Laboral
+
+```{r eval=TRUE}
+inicio <- proc.time()
+censo2.dt.target<-censo2.dt[,list(contador = .N), by=c("sexo","rela")]
+# .N es el numero de registros en cada grupo, con grupos definidos por las variables "ecivil" y "esreal".
+tiempo_dt2 <- proc.time() - inicio
+tiempo_dt2 
+
+knitr::kable(censo2.dt.target)
+```
+
+
+Este data frame nos queda en un formato 'largo'. Lo pasamos al formato 'ancho' con dcast del paquete reshape
+
+```{r eval=TRUE}
+censo2.df.target<- as.data.frame(censo2.dt.target)
+tabla2.df<-dcast(censo2.df.target, rela ~ sexo, value.var="contador", sum, margins = "sexo")
+setnames(tabla2.df, "(all)", "Total")
+knitr::kable(tabla2.df)
+```
+
+
+Viendo los resultados de los tiempos de ejecución entre dplyr y data.tables, se observa que data.table es mas rápido. 
+
+Personalmente prefiero data.tables.
+
+

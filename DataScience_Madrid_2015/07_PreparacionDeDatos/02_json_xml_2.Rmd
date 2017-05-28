@@ -1,0 +1,84 @@
+# Practica de Preparación de Datos
+## Curso Data Science
+#### Jorge Calbó
+
+
+### Ej 2
+### Alternative Fuel Locations API para la ciudad de Chicago
+Voy de vacaciones a Chicago y me gustaría alquilar un vehiculo electrico pero no estoy seguro dedonde estan ubicados los puntos de carga en esta ciudad.
+
+La idea entonces es descargar a través de una API un dataset de puntos de Combustible Alternativo que permitan la carga electrica de vehiculos y localizarlos en un mapa de la zona. 
+
+```{r eval=TRUE, warning=FALSE, message=FALSE} 
+(midir <- getwd())
+if (!is.null(midir)) setwd(midir)
+
+library(jsonlite)
+library(ggplot2)
+library(ggmap)
+library(maps)
+```
+
+Los campos que devuelve la API se describen en:
+http://developer.nrel.gov/docs/transportation/alt-fuel-stations-v1/all/
+
+La API devuelve un json que cargo desde el portal de la Ciudad de Chicago:
+
+```{r eval=TRUE} 
+mi <- readLines("https://data.cityofchicago.org/resource/alternative-fuel-locations.json",warn="F")
+
+# Transformo el json que me devuelve la API
+mi_str = paste(mi, collapse = "")
+```
+
+Usando jsonlite
+```{r eval=TRUE}
+mi.json <- jsonlite::fromJSON(mi_str)
+head(mi.json)
+```
+
+Veo clase, longitud y nombres de variables
+```{r eval=TRUE}
+lapply(mi.json, class)
+names(mi.json)
+nrow(mi.json)
+```
+#### Cargo un mapa de la zona de Chicago usando como fuente Google.
+Elijo el tipo 'roadmap' que me permite ver las carretetas y los nombres de los barrios
+```{r eval=TRUE}
+mapabase <- get_map(location='Chicago', zoom = 11, maptype='roadmap', color='color', source='google')
+ggmap(mapabase)
+```
+
+Me quedo con las zonas cercanas a la Ciudad y que sean publicas y dispensen combustible 'Electrico'
+```{r eval=TRUE}
+sub_chicago <- mi.json[mi.json$state == 'IL'& 
+                       mi.json$city == 'Chicago' & 
+                       mi.json$fuel_type == 'ELEC' &
+                       mi.json$access_days_time == '24 hours daily',]
+
+nrow(sub_chicago)
+```
+
+Veo que hay unas `r nrow(sub_chicago)` estaciones de servicio en las cercanias de Chicago que funcionan todo el dia y son publicas.
+
+Guardo las latitudes y longitudes de todas ellas
+
+```{r eval=TRUE}
+latitud <- as.numeric(sub_chicago$latitude)
+longitud <- as.numeric(sub_chicago$longitude)
+```
+
+Asocio los ejes del mapa base de Google con las longitudes y latitudes obtenidas 
+```{r eval=TRUE}
+mapa1 <- ggmap(mapabase, extent='panel', base_layer=ggplot(sub_chicago,aes(x=longitud, y=latitud)))
+```
+
+Agrego los puntos del dataframe
+```{r eval=TRUE}
+mapa.servicio <- mapa1 + geom_point(color = "blue", size = 2) + 
+  labs(title="Estaciones de Repostaje de Energia Electrica en Chicago",x="Longitud", y="Latitud") + 
+  theme(plot.title = element_text(hjust = 0, vjust = 1, face = c("bold")))
+
+print(mapa.servicio)
+```
