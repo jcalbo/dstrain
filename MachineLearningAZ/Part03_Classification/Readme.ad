@@ -6,8 +6,7 @@ In this part, I'll implement the following models:
 
 - Logistic Regression
 - K-Nearest Neighbors (K-NN)
-- Support Vector Machine (SVM)
-- Kernel SVM
+- Support Vector Machines (SVM)
 - Naive Bayes
 - Decision Tree Classification
 - Random Forest Classification
