@@ -13,11 +13,12 @@ He usado un docker (https://hub.docker.com/r/jupyter/all-spark-notebook/) que in
 
 Se tratan ejemplos de:
 
-- Dataframes
+- **Dataframes Basics**
 
-- Machine Learning con Spark MLlib
+- **Machine Learning con Spark MLlib**
   * Regresión Lineal
   * Clusters con K-means
   * Filtros colaborativos
   * NLP
-  * Streaming
+
+- **Streaming**
