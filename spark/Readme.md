@@ -12,8 +12,11 @@ He usado un docker (https://hub.docker.com/r/jupyter/all-spark-notebook/) que in
 - Mesos client 1.2 binary that can communicate with a Mesos mast
 
 Se tratan ejemplos de:
+
 - Dataframes
+
 - Machine Learning con Spark MLlib
+
   - Regresión Lineal
   - Clusters con K-means
   - Filtros colaborativos
