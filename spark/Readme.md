@@ -16,9 +16,8 @@ Se tratan ejemplos de:
 - Dataframes
 
 - Machine Learning con Spark MLlib
-
-  - Regresión Lineal
-  - Clusters con K-means
-  - Filtros colaborativos
-  - NLP
-  - Streaming
+  * Regresión Lineal
+  * Clusters con K-means
+  * Filtros colaborativos
+  * NLP
+  * Streaming
