@@ -16,7 +16,7 @@ Se tratan ejemplos de:
 - Dataframes
 
 - Machine Learning con Spark MLlib
-  * Regresión Lineal
+  * Regresión Lineal
   * Clusters con K-means
   * Filtros colaborativos
   * NLP
